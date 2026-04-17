@@ -9,6 +9,7 @@ Dataset is cached to HDF5 to avoid re-solving on every run.
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import h5py
@@ -17,6 +18,8 @@ import torch
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 from torch.utils.data import Dataset
+
+log = logging.getLogger(__name__)
 
 
 def _random_kappa(grid_size: int, rng: np.random.Generator, max_kappa: float = 12.0) -> np.ndarray:
@@ -122,7 +125,7 @@ def generate_darcy_dataset(
         kappa_arr[i] = kappa.astype(np.float32)
         T_arr[i] = T.astype(np.float32)
         if verbose and (i + 1) % 100 == 0:
-            print(f"  Generated {i + 1}/{n_samples} samples")
+            log.info("Generated %d/%d samples", i + 1, n_samples)
 
     return kappa_arr, T_arr
 
@@ -136,7 +139,12 @@ def load_or_generate(
     """Load dataset from HDF5 cache if it exists, otherwise generate and save."""
     if cache_path.exists():
         with h5py.File(cache_path, "r") as f:
-            return f["kappa"][:], f["T"][:]
+            cached_kappa = f["kappa"][:]
+        if cached_kappa.shape != (n_samples, grid_size, grid_size):
+            cache_path.unlink()
+        else:
+            with h5py.File(cache_path, "r") as f:
+                return f["kappa"][:], f["T"][:]
     kappa, T = generate_darcy_dataset(n_samples, grid_size, seed, verbose=True)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     with h5py.File(cache_path, "w") as f:
