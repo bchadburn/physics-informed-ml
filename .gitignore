@@ -14,3 +14,5 @@ data/*.parquet
 *.pt
 *.ckpt
 .env
+.coverage
+outputs/
