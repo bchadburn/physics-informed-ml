@@ -29,13 +29,20 @@ def test_fno2d_output_shape():
 
 def test_fno2d_resolution_invariance():
     """FNO must run on any resolution >= 2*modes without retraining."""
+    import torch.nn.functional as F
     model = FNO2d(modes1=8, modes2=8, width=16, n_layers=2)
     model.eval()
+    def make_input(n):
+        coords = torch.linspace(0, 1, n)
+        gy, gx = torch.meshgrid(coords, coords, indexing="ij")
+        kappa = 1.0 + torch.sin(2 * 3.14159 * gx) * torch.cos(2 * 3.14159 * gy)
+        return torch.stack([kappa, gx, gy]).unsqueeze(0)
     with torch.no_grad():
-        out_32 = model(torch.randn(2, 3, 32, 32))
-        out_64 = model(torch.randn(2, 3, 64, 64))
-    assert out_32.shape == (2, 1, 32, 32)
-    assert out_64.shape == (2, 1, 64, 64)
+        out_32 = model(make_input(32))
+        out_64 = model(make_input(64))
+        out_64_ds = F.interpolate(out_64, size=32, mode="bilinear", align_corners=False)
+    corr = torch.corrcoef(torch.stack([out_32.flatten(), out_64_ds.flatten()]))[0, 1]
+    assert corr > 0.5
 
 
 def test_unet2d_output_shape():

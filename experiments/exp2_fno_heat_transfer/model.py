@@ -133,10 +133,10 @@ class _DoubleConv(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
-            nn.GroupNorm(1, out_ch),
+            nn.GroupNorm(min(8, out_ch), out_ch),
             nn.GELU(),
             nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
-            nn.GroupNorm(1, out_ch),
+            nn.GroupNorm(min(8, out_ch), out_ch),
             nn.GELU(),
         )
 
