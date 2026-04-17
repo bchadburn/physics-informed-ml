@@ -135,8 +135,10 @@ def load_or_generate(
     n_samples: int,
     grid_size: int = 64,
     seed: int = 42,
+    max_kappa: float = 12.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Load dataset from HDF5 cache if it exists, otherwise generate and save."""
+    cache_path = Path(cache_path)
     if cache_path.exists():
         with h5py.File(cache_path, "r") as f:
             cached_kappa = f["kappa"][:]
@@ -145,7 +147,7 @@ def load_or_generate(
         else:
             with h5py.File(cache_path, "r") as f:
                 return f["kappa"][:], f["T"][:]
-    kappa, T = generate_darcy_dataset(n_samples, grid_size, seed, verbose=True)
+    kappa, T = generate_darcy_dataset(n_samples, grid_size, seed, max_kappa=max_kappa, verbose=True)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     with h5py.File(cache_path, "w") as f:
         f.create_dataset("kappa", data=kappa, compression="gzip")
