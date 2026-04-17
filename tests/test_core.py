@@ -48,3 +48,6 @@ def test_render_markdown_table():
     assert "FNO" in table
     assert "UNet" in table
     assert "|" in table
+    lines = table.strip().split("\n")
+    assert len(lines) == 4  # header + separator + 2 data rows
+    assert "0.0230" in table  # numeric formatting present

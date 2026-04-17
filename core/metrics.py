@@ -52,9 +52,13 @@ def inference_timer(
     with torch.no_grad():
         for _ in range(10):
             model(inputs)
+    if device != "cpu":
+        torch.cuda.synchronize()
     times = []
     with torch.no_grad():
         for _ in range(n_runs):
+            if device != "cpu":
+                torch.cuda.synchronize()
             t0 = time.perf_counter()
             model(inputs)
             if device != "cpu":
