@@ -76,6 +76,7 @@ def main(cfg: DictConfig) -> None:
     n = len(ds)
     n_train = int(n * cfg.data.train_frac)
     n_val = int(n * cfg.data.val_frac)
+    assert cfg.data.train_frac + cfg.data.val_frac < 1.0, "train_frac + val_frac must be < 1"
 
     train_ds = torch.utils.data.Subset(ds, range(n_train))
     val_ds = torch.utils.data.Subset(ds, range(n_train, n_train + n_val))
@@ -131,8 +132,10 @@ def main(cfg: DictConfig) -> None:
         # Evaluate on test set
         all_preds, all_trues = [], []
         module.eval()
+        device = next(module.parameters()).device
         with torch.no_grad():
             for x_batch, y_batch in test_loader:
+                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
                 pred = module(x_batch)
                 all_preds.append(pred.cpu().numpy())
                 all_trues.append(y_batch.cpu().numpy())
