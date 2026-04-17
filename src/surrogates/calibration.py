@@ -56,13 +56,15 @@ class ConformalCalibrator:
         Returns:
             q̂ — also stored in self.q_hat.
         """
+        if not 0.0 < coverage < 1.0:
+            raise ValueError(f"coverage must be in (0, 1), got {coverage}")
         n = len(y_cal)
         scores = (
             (y_cal - pred_mean).abs() / (pred_total_std + 1e-8)
         ).squeeze().detach().numpy()
         # Finite-sample adjustment (Angelopoulos & Bates 2021)
         level = min(np.ceil((n + 1) * coverage) / n, 1.0)
-        self.q_hat = float(np.quantile(scores, level))
+        self.q_hat = float(np.quantile(scores, level, method='higher'))
         self._coverage_target = coverage
         return self.q_hat
 

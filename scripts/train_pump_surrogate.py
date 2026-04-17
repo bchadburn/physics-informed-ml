@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.physics_models.data_generator import generate_pump_field_data
 from src.physics_models.pump import PumpParameters, PumpPhysics
+from src.surrogates.calibration import ConformalCalibrator
 from src.surrogates.ensemble import PINNEnsemble
 from src.surrogates.pinn import PINNConfig
 
@@ -128,7 +129,6 @@ def main(cfg: DictConfig) -> None:
         })
 
         # Conformal calibration on validation set
-        from src.surrogates.calibration import ConformalCalibrator
         X_val_tensor, y_val_tensor = _to_tensors(df_val)
         pred_val = ensemble.predict(X_val_tensor)
         calibrator = ConformalCalibrator()
