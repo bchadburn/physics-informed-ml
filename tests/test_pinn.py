@@ -84,3 +84,60 @@ def test_pinn_training_step_decreases_loss():
     assert losses[-1] < losses[0], (
         f"Loss did not decrease: start={losses[0]:.4f}, end={losses[-1]:.4f}"
     )
+
+
+from src.surrogates.ensemble import PINNEnsemble, EnsemblePrediction
+
+
+def test_ensemble_predict_returns_uncertainty():
+    """Ensemble prediction must return mean, epistemic_std, aleatoric_std."""
+    from src.physics_models.pump import PumpParameters, PumpPhysics
+    from src.surrogates.pinn import PINNConfig
+    config = PINNConfig(hidden_dims=[16, 16], activation="tanh")
+    physics = PumpPhysics(PumpParameters(
+        design_flow=0.05, design_head=30.0,
+        design_speed=1450.0, design_efficiency=0.75,
+    ))
+    ensemble = PINNEnsemble(config=config, n_members=3, physics=physics)
+    X, _ = _make_batch(8)
+    pred = ensemble.predict(X)
+    assert isinstance(pred, EnsemblePrediction)
+    assert pred.mean.shape == (8, 1)
+    assert pred.epistemic_std.shape == (8, 1)
+    assert pred.aleatoric_std.shape == (8, 1)
+    assert pred.total_std.shape == (8, 1)
+
+
+def test_ensemble_epistemic_uncertainty_increases_ood():
+    """Epistemic uncertainty should be higher far outside training range."""
+    from src.physics_models.pump import PumpParameters, PumpPhysics
+    from src.surrogates.pinn import PINNConfig
+    from src.physics_models.data_generator import generate_pump_field_data
+
+    config = PINNConfig(hidden_dims=[32, 32], activation="tanh",
+                        lambda_data=1.0, lambda_physics=0.0, lr=1e-3)
+    physics = PumpPhysics(PumpParameters(
+        design_flow=0.05, design_head=30.0,
+        design_speed=1450.0, design_efficiency=0.75,
+    ))
+    ensemble = PINNEnsemble(config=config, n_members=3, physics=physics)
+
+    # Minimal training data (in-distribution)
+    df = generate_pump_field_data(n_samples=100, seed=0)
+    X_tr = torch.tensor(
+        df[["flow_rate", "speed", "operating_hours"]].values, dtype=torch.float32
+    )
+    y_tr = torch.tensor(df[["head"]].values, dtype=torch.float32)
+    ensemble.fit(X_tr, y_tr, max_epochs=5, batch_size=32)
+
+    # In-distribution: normal operating point
+    X_in = torch.tensor([[0.05, 1450.0, 1000.0]])
+    # OOD: extreme speed far outside training range
+    X_ood = torch.tensor([[0.05, 5000.0, 1000.0]])
+
+    pred_in = ensemble.predict(X_in)
+    pred_ood = ensemble.predict(X_ood)
+
+    assert pred_ood.epistemic_std.mean() > pred_in.epistemic_std.mean(), (
+        "OOD epistemic uncertainty should exceed in-distribution uncertainty"
+    )
