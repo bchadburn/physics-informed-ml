@@ -13,6 +13,7 @@ training:
   batch_size: 64
   max_epochs: 300
   early_stop_patience: 30
+  accelerator: gpu
 
 physics:
   lambda_data: 1.0

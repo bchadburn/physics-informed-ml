@@ -104,6 +104,7 @@ def main(cfg: DictConfig) -> None:
             max_epochs=cfg.training.max_epochs,
             batch_size=cfg.training.batch_size,
             early_stop_patience=cfg.training.early_stop_patience,
+            accelerator=cfg.training.accelerator,
         )
 
         # Evaluate on test set

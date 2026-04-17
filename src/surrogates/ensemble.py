@@ -57,6 +57,7 @@ class PINNEnsemble:
         max_epochs: int = 300,
         batch_size: int = 64,
         early_stop_patience: int = 30,
+        accelerator: str = "auto",
     ) -> None:
         """Train all ensemble members. Each gets a different random seed."""
         self._x_mean = X_train.mean(dim=0)
@@ -86,6 +87,7 @@ class PINNEnsemble:
             ]
             trainer = L.Trainer(
                 max_epochs=max_epochs,
+                accelerator=accelerator,
                 callbacks=callbacks,
                 enable_progress_bar=False,
                 enable_model_summary=False,
