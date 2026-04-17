@@ -82,6 +82,7 @@ def main(cfg: DictConfig) -> None:
         lambda_data=cfg.physics.lambda_data,
         lambda_physics=cfg.physics.lambda_physics,
         lr=cfg.training.lr,
+        mse_warmup_epochs=cfg.model_training.mse_warmup_epochs,
     )
 
     ensemble = PINNEnsemble(
@@ -96,6 +97,7 @@ def main(cfg: DictConfig) -> None:
             "hidden_dims": str(cfg.model.hidden_dims),
             "lambda_physics": cfg.physics.lambda_physics,
             "max_epochs": cfg.training.max_epochs,
+            "mse_warmup_epochs": cfg.model_training.mse_warmup_epochs,
         })
 
         log.info("Training ensemble of %d members...", cfg.ensemble.n_members)

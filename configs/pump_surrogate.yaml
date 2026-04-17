@@ -11,13 +11,16 @@ model:
 training:
   lr: 1.0e-3
   batch_size: 64
-  max_epochs: 300
-  early_stop_patience: 30
+  max_epochs: 600
+  early_stop_patience: 50
   accelerator: gpu
+
+model_training:
+  mse_warmup_epochs: 200
 
 physics:
   lambda_data: 1.0
-  lambda_physics: 0.1
+  lambda_physics: 0.01
 
 ensemble:
   n_members: 10

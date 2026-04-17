@@ -30,6 +30,7 @@ class PINNConfig:
     lambda_data: float = 1.0
     lambda_physics: float = 0.1
     lr: float = 1e-3
+    mse_warmup_epochs: int = 50  # train with pure MSE before switching to NLL
 
 
 class PINN(L.LightningModule):
@@ -62,11 +63,16 @@ class PINN(L.LightningModule):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return (head_mean, head_logvar), each shape [N, 1]."""
+        """Return (head_mean, head_logvar), each shape [N, 1].
+
+        logvar is clamped to [-6, 6] so learned std stays in [0.05, 20] metres,
+        preventing the heteroscedastic NLL collapse where the network inflates
+        variance instead of improving mean predictions.
+        """
         x_norm = (x - self.x_mean) / (self.x_std + 1e-8)
         out = self.net(x_norm)
         mean = out[:, :1]
-        logvar = out[:, 1:]
+        logvar = out[:, 1:].clamp(-6, 6)
         return mean, logvar
 
     def compute_losses(
@@ -79,10 +85,15 @@ class PINN(L.LightningModule):
         """
         mean, logvar = self(x)
 
-        # Heteroscedastic negative log-likelihood
+        # Data loss: MSE during warmup, heteroscedastic NLL afterwards.
+        # Warmup prevents logvar from inflating before the mean has converged.
         # NLL = 0.5 * (logvar + (y - mean)² / exp(logvar))
-        loss_data = 0.5 * (logvar + (y_head - mean) ** 2 / (logvar.exp() + 1e-8))
-        loss_data = loss_data.mean()
+        in_warmup = self.current_epoch < self.config.mse_warmup_epochs
+        if in_warmup:
+            loss_data = nn.functional.mse_loss(mean, y_head)
+        else:
+            loss_data = 0.5 * (logvar + (y_head - mean) ** 2 / (logvar.exp() + 1e-8))
+            loss_data = loss_data.mean()
 
         # Physics loss: affinity law H ∝ N²
         # d(mean)/d(speed) should equal 2 * mean / speed
