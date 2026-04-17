@@ -74,3 +74,30 @@ def test_invalid_flow_raises():
     physics = PumpPhysics(params)
     with pytest.raises(ValueError, match="flow"):
         physics.head(flow=-0.01, speed=1450.0)
+
+
+from src.physics_models.data_generator import generate_pump_field_data
+
+
+def test_data_generator_shape():
+    """Generated DataFrame has correct columns and row count."""
+    df = generate_pump_field_data(n_samples=500, seed=42)
+    expected_cols = {"timestamp", "flow_rate", "head", "speed", "operating_hours"}
+    assert expected_cols.issubset(df.columns), f"Missing columns: {expected_cols - set(df.columns)}"
+    assert len(df) == 500
+
+
+def test_data_generator_degradation():
+    """Head values late in operation should average lower than early operation."""
+    df = generate_pump_field_data(n_samples=500, seed=42)
+    early = df[df["operating_hours"] < 1000]["head"].mean()
+    late = df[df["operating_hours"] > 7000]["head"].mean()
+    assert late < early, "Degraded pump should have lower average head"
+
+
+def test_data_generator_reproducible():
+    """Same seed produces identical DataFrames."""
+    df1 = generate_pump_field_data(n_samples=100, seed=0)
+    df2 = generate_pump_field_data(n_samples=100, seed=0)
+    import pandas as pd
+    pd.testing.assert_frame_equal(df1, df2)
