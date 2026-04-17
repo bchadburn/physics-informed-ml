@@ -1,0 +1,15 @@
+# configs/base.yaml
+defaults:
+  - _self_
+
+seed: 42
+
+data:
+  csv_path: data/pump_field_measurements.csv
+  train_split: 0.6
+  val_split: 0.2
+  # test_split is remainder (0.2)
+
+logging:
+  mlflow_tracking_uri: mlruns
+  experiment_name: pump_surrogate

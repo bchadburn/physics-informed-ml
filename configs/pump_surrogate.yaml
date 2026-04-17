@@ -1,0 +1,22 @@
+# configs/pump_surrogate.yaml
+defaults:
+  - base
+  - _self_
+
+model:
+  hidden_dims: [64, 64, 64]
+  activation: tanh
+  dropout: 0.0
+
+training:
+  lr: 1.0e-3
+  batch_size: 64
+  max_epochs: 300
+  early_stop_patience: 30
+
+physics:
+  lambda_data: 1.0
+  lambda_physics: 0.1
+
+ensemble:
+  n_members: 10
