@@ -127,6 +127,25 @@ def main(cfg: DictConfig) -> None:
             "coverage_2sigma": within_2sigma,
         })
 
+        # Conformal calibration on validation set
+        from src.surrogates.calibration import ConformalCalibrator
+        X_val_tensor, y_val_tensor = _to_tensors(df_val)
+        pred_val = ensemble.predict(X_val_tensor)
+        calibrator = ConformalCalibrator()
+        q_hat = calibrator.calibrate(
+            y_val_tensor, pred_val.mean, pred_val.total_std, coverage=0.90
+        )
+        interval = calibrator.predict_interval(pred.mean, pred.total_std)
+        calibrated_coverage = calibrator.empirical_coverage(y_test, interval)
+        log.info(
+            "Conformal q̂=%.3f | Calibrated 90%% coverage on test: %.1f%%",
+            q_hat, calibrated_coverage * 100,
+        )
+        mlflow.log_metrics({
+            "conformal_q_hat": q_hat,
+            "calibrated_coverage_90": calibrated_coverage,
+        })
+
         # Save ensemble
         out_dir = Path("models/pump_ensemble")
         out_dir.mkdir(parents=True, exist_ok=True)
