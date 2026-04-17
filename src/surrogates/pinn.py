@@ -124,8 +124,9 @@ class PINN(L.LightningModule):
         self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
     ) -> None:
         x, y = batch
-        x = x.requires_grad_(True)
-        losses = self.compute_losses(x, y)
+        with torch.enable_grad():
+            x = x.detach().requires_grad_(True)
+            losses = self.compute_losses(x, y)
         self.log("val/loss_total", losses["loss_total"], prog_bar=True)
         self.log("val/loss_physics", losses["loss_physics"])
 
