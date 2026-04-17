@@ -1,0 +1,28 @@
+defaults:
+  - base
+  - _self_
+
+data:
+  cache_path: data/darcy_64.h5
+  n_samples: 1000
+  grid_size: 64
+  train_frac: 0.7
+  val_frac: 0.15
+
+model:
+  name: fno2d  # or unet2d
+  modes1: 12
+  modes2: 12
+  width: 32
+  n_layers: 4
+
+training:
+  lr: 1.0e-3
+  batch_size: 16
+  max_epochs: 100
+  early_stop_patience: 20
+  accelerator: gpu
+
+logging:
+  mlflow_tracking_uri: mlruns
+  experiment_name: fno_heat_transfer
