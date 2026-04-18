@@ -1,0 +1,16 @@
+# configs/bayesian_compressor.yaml
+defaults:
+  - base
+  - _self_
+
+data:
+  n_samples: 5000
+  cold_start_days: 30
+
+model:
+  alpha: 1.0
+  beta: 40000.0
+
+logging:
+  mlflow_tracking_uri: mlruns
+  experiment_name: bayesian_compressor
