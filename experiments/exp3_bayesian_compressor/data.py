@@ -15,6 +15,12 @@ N_RATED: float = 3500.0   # RPM
 
 NOISE_STD: float = 0.005  # efficiency measurement noise (std)
 
+DAYS_PER_MONTH: float = 30.0
+_ETA_PEAK: float = 0.85
+_ETA_COEFF_Q: float = -0.40
+_ETA_COEFF_DP: float = -0.15
+_ETA_COEFF_N: float = -0.25
+
 # True residual weights (unknown to the model — used only in data generation)
 _BETA_TRUE = np.array([0.02, 0.015, -0.010, 0.008])
 
@@ -25,10 +31,10 @@ def vendor_curve(Q: np.ndarray, dP: np.ndarray, N: np.ndarray) -> np.ndarray:
     dP_n = dP / DP_RATED
     N_n = N / N_RATED
     return (
-        0.85
-        - 0.40 * (Q_n - 1.0) ** 2
-        - 0.25 * (N_n - 1.0) ** 2
-        - 0.15 * (dP_n - 1.0) ** 2
+        _ETA_PEAK
+        + _ETA_COEFF_Q * (Q_n - 1.0) ** 2
+        + _ETA_COEFF_N * (N_n - 1.0) ** 2
+        + _ETA_COEFF_DP * (dP_n - 1.0) ** 2
     )
 
 
@@ -55,7 +61,7 @@ def generate_compressor_data(n_samples: int = 5000, seed: int = 42) -> dict:
     N = rng.uniform(0.7 * N_RATED, 1.3 * N_RATED, n_samples)
 
     eta_vendor = vendor_curve(Q, dP, N)
-    drift = -0.002 * t_days / 30.0
+    drift = -0.002 * t_days / DAYS_PER_MONTH
     phi = features(Q, dP, N)
     residual = phi @ _BETA_TRUE
     noise = rng.normal(0.0, NOISE_STD, n_samples)
