@@ -65,3 +65,19 @@ def inference_timer(
                 torch.cuda.synchronize()
             times.append(time.perf_counter() - t0)
     return float(np.mean(times))
+
+
+def optimality_gap(surrogate_obj: float, reference_obj: float) -> float:
+    """Relative gap between surrogate optimum and reference (grid search) optimum.
+
+    Positive means the surrogate found a worse solution than the reference.
+    Zero means the surrogate matched the reference exactly.
+
+    Args:
+        surrogate_obj:  objective value found by surrogate-based optimizer
+        reference_obj:  objective value from exhaustive reference (grid search)
+
+    Returns:
+        (surrogate_obj - reference_obj) / abs(reference_obj)
+    """
+    return (surrogate_obj - reference_obj) / abs(reference_obj)
