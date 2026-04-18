@@ -1,0 +1,105 @@
+"""Projected gradient descent with augmented Lagrangian constraint handling.
+
+Decision variables (flow_rate, speed) are normalised to [0, 1] for numerical
+stability. After each Adam step they are clamped to [0, 1], which is equivalent
+to projection onto the feasible box in the original space.
+
+The surrogate is called without torch.no_grad() so gradients flow back through
+the neural network to the input tensors.
+"""
+from __future__ import annotations
+
+import time
+from typing import Callable
+
+import numpy as np
+import torch
+
+from experiments.exp4_surrogate_optimizer.baselines import OptimizationResult
+from experiments.exp4_surrogate_optimizer.problem import (
+    FLOW_RATE_LB, FLOW_RATE_UB, SPEED_LB, SPEED_UB,
+    augmented_lagrangian_loss, constraint_violation,
+)
+
+
+def optimize(
+    surrogate_fn: Callable,
+    h_min: float,
+    operating_hours: float = 0.0,
+    x0: np.ndarray | None = None,
+    n_steps: int = 500,
+    lr: float = 1e-2,
+    penalty_weight: float = 100.0,
+) -> OptimizationResult:
+    """Projected gradient descent through the surrogate.
+
+    Args:
+        surrogate_fn:    callable (1, 3) → (1, 1) — must support autograd
+        h_min:           minimum required head (constraint threshold)
+        operating_hours: fixed operating hours input to surrogate
+        x0:              initial [flow_rate, speed] (random if None)
+        n_steps:         number of gradient descent iterations
+        lr:              Adam learning rate on normalised [0, 1] parameters
+        penalty_weight:  augmented Lagrangian penalty coefficient
+
+    Returns:
+        OptimizationResult with optimised x, objective value, and diagnostics.
+    """
+    t0 = time.perf_counter()
+
+    if x0 is None:
+        rng = np.random.default_rng(0)
+        x0 = np.array([
+            rng.uniform(FLOW_RATE_LB, FLOW_RATE_UB),
+            rng.uniform(SPEED_LB, SPEED_UB),
+        ])
+
+    # Normalise to [0, 1] for Adam stability
+    fr_norm = torch.tensor(
+        [(x0[0] - FLOW_RATE_LB) / (FLOW_RATE_UB - FLOW_RATE_LB)],
+        dtype=torch.float32, requires_grad=True,
+    )
+    sp_norm = torch.tensor(
+        [(x0[1] - SPEED_LB) / (SPEED_UB - SPEED_LB)],
+        dtype=torch.float32, requires_grad=True,
+    )
+
+    adam = torch.optim.Adam([fr_norm, sp_norm], lr=lr)
+    n_calls = 0
+
+    for _ in range(n_steps):
+        adam.zero_grad()
+
+        # De-normalise to physical units
+        fr = fr_norm * (FLOW_RATE_UB - FLOW_RATE_LB) + FLOW_RATE_LB
+        sp = sp_norm * (SPEED_UB - SPEED_LB) + SPEED_LB
+
+        X = torch.stack([fr, sp, torch.tensor([operating_hours])], dim=1)
+        head = surrogate_fn(X)  # (1, 1) — gradients flow through here
+        n_calls += 1
+
+        loss = augmented_lagrangian_loss(fr, head.squeeze(), h_min, penalty_weight)
+        loss.backward()
+        adam.step()
+
+        # Project normalised params back to [0, 1]
+        with torch.no_grad():
+            fr_norm.clamp_(0.0, 1.0)
+            sp_norm.clamp_(0.0, 1.0)
+
+    # Final evaluation at converged point
+    with torch.no_grad():
+        fr_final = float(fr_norm * (FLOW_RATE_UB - FLOW_RATE_LB) + FLOW_RATE_LB)
+        sp_final = float(sp_norm * (SPEED_UB - SPEED_LB) + SPEED_LB)
+        X_final = torch.tensor([[fr_final, sp_final, operating_hours]], dtype=torch.float32)
+        head_final = float(surrogate_fn(X_final).squeeze())
+        n_calls += 1
+
+    return OptimizationResult(
+        x_opt=np.array([fr_final, sp_final]),
+        obj_value=fr_final * head_final,
+        head_at_opt=head_final,
+        constraint_violation=max(0.0, h_min - head_final),
+        n_surrogate_calls=n_calls,
+        wall_time_ms=(time.perf_counter() - t0) * 1000,
+    )
