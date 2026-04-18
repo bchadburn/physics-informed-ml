@@ -20,12 +20,11 @@ from omegaconf import DictConfig
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from core.benchmark import BenchmarkResult, render_markdown_table
 from core.metrics import optimality_gap
 from experiments.exp4_surrogate_optimizer.baselines import (
     OptimizationResult, grid_search, random_search,
 )
-from experiments.exp4_surrogate_optimizer.optimizer import optimize
+from experiments.exp4_surrogate_optimizer.optimizer import optimize, optimize_multistart
 from src.physics_models.data_generator import generate_pump_field_data
 from src.physics_models.pump import PumpParameters, PumpPhysics
 from src.surrogates.ensemble import PINNEnsemble
@@ -105,6 +104,26 @@ def _make_surrogate_fn(ensemble: PINNEnsemble) -> Callable:
     return surrogate_fn
 
 
+def _render_opt_table(
+    rows: list[tuple[str, OptimizationResult, float, float | None]],
+) -> str:
+    """Render optimizer comparison as a markdown table.
+
+    Columns: Method | Power (W) | Head (m) | Violation | Gap (%) | Calls | Time (ms) | Speedup
+    """
+    header = "| Method | Power | Head (m) | Violation | Gap (%) | Calls | Time (ms) | Speedup |"
+    sep    = "|--------|-------|----------|-----------|---------|-------|-----------|---------|"
+    lines = [header, sep]
+    for name, r, gap, speedup in rows:
+        sp_str = f"{speedup:.1f}×" if speedup is not None else "—"
+        lines.append(
+            f"| {name} | {r.obj_value:.4f} | {r.head_at_opt:.2f} | "
+            f"{r.constraint_violation:.3f} | {gap * 100:.1f} | "
+            f"{r.n_surrogate_calls} | {r.wall_time_ms:.0f} | {sp_str} |"
+        )
+    return "\n".join(lines)
+
+
 @hydra.main(config_path="../../configs", config_name="surrogate_optimizer", version_base=None)
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(cfg.logging.mlflow_tracking_uri)
@@ -134,7 +153,7 @@ def main(cfg: DictConfig) -> None:
         rand_result.wall_time_ms,
     )
 
-    log.info("Running gradient optimizer (%d steps)...", cfg.optimization.n_steps)
+    log.info("Running gradient optimizer (%d steps, single start)...", cfg.optimization.n_steps)
     grad_result = optimize(
         surrogate_fn, h_min, op_hrs,
         n_steps=cfg.optimization.n_steps,
@@ -142,45 +161,48 @@ def main(cfg: DictConfig) -> None:
         penalty_weight=cfg.optimization.penalty_weight,
     )
     log.info(
-        "Gradient: power=%.4f  head=%.2f m  violation=%.3f  calls=%d  time=%.0f ms",
+        "Gradient (1 start): power=%.4f  head=%.2f m  violation=%.3f  calls=%d  time=%.0f ms",
         grad_result.obj_value, grad_result.head_at_opt,
         grad_result.constraint_violation, grad_result.n_surrogate_calls,
         grad_result.wall_time_ms,
     )
 
-    gap_rand = optimality_gap(rand_result.obj_value, grid_result.obj_value)
-    gap_grad = optimality_gap(grad_result.obj_value, grid_result.obj_value)
-    speedup = grid_result.n_surrogate_calls / max(grad_result.n_surrogate_calls, 1)
-
     log.info(
-        "Optimality gaps — random: %.1f%%  gradient: %.1f%%  speedup: %.0f×",
-        gap_rand * 100, gap_grad * 100, speedup,
+        "Running multi-start gradient optimizer (%d starts × %d steps)...",
+        cfg.optimization.n_starts, cfg.optimization.n_steps,
+    )
+    multistart_result = optimize_multistart(
+        surrogate_fn, h_min, op_hrs,
+        n_starts=cfg.optimization.n_starts,
+        n_steps=cfg.optimization.n_steps,
+        lr=cfg.optimization.lr,
+        penalty_weight=cfg.optimization.penalty_weight,
+    )
+    log.info(
+        "Gradient (%d starts): power=%.4f  head=%.2f m  violation=%.3f  calls=%d  time=%.0f ms",
+        cfg.optimization.n_starts,
+        multistart_result.obj_value, multistart_result.head_at_opt,
+        multistart_result.constraint_violation, multistart_result.n_surrogate_calls,
+        multistart_result.wall_time_ms,
     )
 
-    results = [
-        BenchmarkResult(
-            name="Grid search (reference)",
-            relative_l2=0.0,
-            inference_time_ms=grid_result.wall_time_ms,
-            n_train_samples=grid_result.n_surrogate_calls,
-            notes=f"power={grid_result.obj_value:.4f}, violation={grid_result.constraint_violation:.3f}",
-        ),
-        BenchmarkResult(
-            name="Random search",
-            relative_l2=gap_rand,
-            inference_time_ms=rand_result.wall_time_ms,
-            n_train_samples=rand_result.n_surrogate_calls,
-            notes=f"power={rand_result.obj_value:.4f}, violation={rand_result.constraint_violation:.3f}",
-        ),
-        BenchmarkResult(
-            name="Gradient optimizer",
-            relative_l2=gap_grad,
-            inference_time_ms=grad_result.wall_time_ms,
-            n_train_samples=grad_result.n_surrogate_calls,
-            notes=f"power={grad_result.obj_value:.4f}, violation={grad_result.constraint_violation:.3f}, {speedup:.0f}× faster",
-        ),
-    ]
-    table = render_markdown_table(results)
+    gap_rand = optimality_gap(rand_result.obj_value, grid_result.obj_value)
+    gap_grad = optimality_gap(grad_result.obj_value, grid_result.obj_value)
+    gap_multi = optimality_gap(multistart_result.obj_value, grid_result.obj_value)
+    speedup_grad = grid_result.n_surrogate_calls / max(grad_result.n_surrogate_calls, 1)
+    speedup_multi = grid_result.n_surrogate_calls / max(multistart_result.n_surrogate_calls, 1)
+
+    log.info(
+        "Optimality gaps — random: %.1f%%  gradient: %.1f%%  multi-start: %.1f%%",
+        gap_rand * 100, gap_grad * 100, gap_multi * 100,
+    )
+
+    table = _render_opt_table([
+        ("Grid search (reference)", grid_result, 0.0, None),
+        ("Random search", rand_result, gap_rand, None),
+        (f"Gradient (1 start)", grad_result, gap_grad, speedup_grad),
+        (f"Gradient ({cfg.optimization.n_starts} starts)", multistart_result, gap_multi, speedup_multi),
+    ])
     log.info("\n%s", table)
 
     out = Path("experiments/exp4_surrogate_optimizer/results.md")
@@ -192,6 +214,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_params({
             "h_min": h_min,
             "n_steps": cfg.optimization.n_steps,
+            "n_starts": cfg.optimization.n_starts,
             "grid_n": cfg.baselines.grid_n,
             "random_n_samples": cfg.baselines.random_n_samples,
         })
@@ -199,10 +222,12 @@ def main(cfg: DictConfig) -> None:
             "grid_power": grid_result.obj_value,
             "random_power": rand_result.obj_value,
             "grad_power": grad_result.obj_value,
+            "multistart_power": multistart_result.obj_value,
             "optimality_gap_random": gap_rand,
             "optimality_gap_gradient": gap_grad,
-            "gradient_speedup_vs_grid": speedup,
+            "optimality_gap_multistart": gap_multi,
             "grad_constraint_violation": grad_result.constraint_violation,
+            "multistart_constraint_violation": multistart_result.constraint_violation,
         })
 
 

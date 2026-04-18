@@ -9,6 +9,7 @@ optimization:
   n_steps: 500
   lr: 0.01
   penalty_weight: 100.0
+  n_starts: 10
 
 baselines:
   random_n_samples: 10000

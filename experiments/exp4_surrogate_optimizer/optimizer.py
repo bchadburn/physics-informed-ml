@@ -22,6 +22,43 @@ from experiments.exp4_surrogate_optimizer.problem import (
 )
 
 
+def optimize_multistart(
+    surrogate_fn: Callable,
+    h_min: float,
+    operating_hours: float = 0.0,
+    n_starts: int = 10,
+    seed: int = 0,
+    **kwargs,
+) -> OptimizationResult:
+    """Run optimize() from multiple random starts and return the best result.
+
+    Mitigates non-convexity: a single gradient run can converge to a local
+    minimum far from the global optimum. Keeping the best feasible result
+    across N diverse starts significantly improves solution quality.
+
+    Args:
+        n_starts: number of random starting points
+        seed:     RNG seed for reproducible starts
+        **kwargs: forwarded to optimize() (n_steps, lr, penalty_weight)
+    """
+    rng = np.random.default_rng(seed)
+    results = []
+    for _ in range(n_starts):
+        x0 = np.array([
+            rng.uniform(FLOW_RATE_LB, FLOW_RATE_UB),
+            rng.uniform(SPEED_LB, SPEED_UB),
+        ])
+        results.append(optimize(surrogate_fn, h_min, operating_hours, x0=x0, **kwargs))
+
+    feasible = [r for r in results if r.constraint_violation == 0.0]
+    best = min(feasible if feasible else results, key=lambda r: r.obj_value)
+
+    # Report aggregated cost across all starts
+    best.n_surrogate_calls = sum(r.n_surrogate_calls for r in results)
+    best.wall_time_ms = sum(r.wall_time_ms for r in results)
+    return best
+
+
 def optimize(
     surrogate_fn: Callable,
     h_min: float,

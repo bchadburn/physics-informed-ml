@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import numpy as np
 import pytest
 import torch
-from experiments.exp4_surrogate_optimizer.optimizer import optimize
+from experiments.exp4_surrogate_optimizer.optimizer import optimize, optimize_multistart
 from experiments.exp4_surrogate_optimizer.baselines import OptimizationResult
 from experiments.exp4_surrogate_optimizer.problem import (
     H_MIN_DEFAULT, FLOW_RATE_LB, FLOW_RATE_UB, SPEED_LB, SPEED_UB,
@@ -48,3 +48,27 @@ def test_optimize_custom_x0():
     x0 = np.array([0.05, 1500.0])
     result = optimize(_mock_surrogate, h_min=H_MIN_DEFAULT, x0=x0, n_steps=50)
     assert isinstance(result, OptimizationResult)
+
+
+def test_multistart_returns_result():
+    result = optimize_multistart(_mock_surrogate, h_min=H_MIN_DEFAULT, n_starts=3, n_steps=50)
+    assert isinstance(result, OptimizationResult)
+    assert FLOW_RATE_LB - 1e-5 <= result.x_opt[0] <= FLOW_RATE_UB + 1e-5
+    assert SPEED_LB - 1e-1 <= result.x_opt[1] <= SPEED_UB + 1e-1
+
+
+def test_multistart_total_calls_equals_sum_of_starts():
+    n_starts = 3
+    n_steps = 50
+    result = optimize_multistart(
+        _mock_surrogate, h_min=H_MIN_DEFAULT, n_starts=n_starts, n_steps=n_steps
+    )
+    # Each run uses n_steps + 1 final eval calls; total = n_starts * (n_steps + 1)
+    assert result.n_surrogate_calls == n_starts * (n_steps + 1)
+
+
+def test_multistart_better_or_equal_to_single_start():
+    """Multi-start obj ≤ single-start obj on a non-convex landscape."""
+    single = optimize(_mock_surrogate, h_min=H_MIN_DEFAULT, n_steps=200)
+    multi = optimize_multistart(_mock_surrogate, h_min=H_MIN_DEFAULT, n_starts=5, n_steps=200)
+    assert multi.obj_value <= single.obj_value + 1e-4
