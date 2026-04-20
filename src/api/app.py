@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import torch
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from src.physics_models.pump import PumpParameters, PumpPhysics
@@ -35,7 +35,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     )
     _physics = PumpPhysics(params)
     if CHECKPOINT_PATH.exists():
-        _ensemble = torch.load(CHECKPOINT_PATH, weights_only=False)
+        # weights_only=False is required when loading a full model object (not state dict)
+        _ensemble = torch.load(CHECKPOINT_PATH, weights_only=False)  # noqa: S614
     yield
 
 
@@ -74,7 +75,9 @@ def predict(req: PredictRequest) -> PredictResponse:
             source="ensemble",
         )
     # Physics fallback — vendor curve, no uncertainty
-    head = _physics.head(req.flow_rate, req.speed)  # type: ignore[union-attr]
+    if _physics is None:
+        raise HTTPException(status_code=503, detail="Model not initialized")
+    head = _physics.head(req.flow_rate, req.speed)
     return PredictResponse(
         head_mean=head,
         epistemic_std=None,
