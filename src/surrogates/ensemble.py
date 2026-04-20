@@ -7,14 +7,14 @@ Total uncertainty:    sqrt(epistemic² + aleatoric²)
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-import torch
 import lightning as L
-from torch.utils.data import DataLoader, TensorDataset
+import torch
 from lightning.pytorch.callbacks import EarlyStopping
+from torch.utils.data import DataLoader, TensorDataset
 
 from src.surrogates.pinn import PINN, PINNConfig
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.physics_models.pump import PumpPhysics
@@ -39,7 +39,7 @@ class PINNEnsemble:
         self,
         config: PINNConfig,
         n_members: int = 10,
-        physics: "PumpPhysics | None" = None,
+        physics: PumpPhysics | None = None,
     ) -> None:
         self.config = config
         self.n_members = n_members

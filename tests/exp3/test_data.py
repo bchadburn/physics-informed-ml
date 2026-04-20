@@ -1,12 +1,18 @@
 # tests/exp3/test_data.py
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
+
 from experiments.exp3_bayesian_compressor.data import (
-    vendor_curve, features, generate_compressor_data,
-    Q_RATED, DP_RATED, N_RATED,
+    DP_RATED,
+    N_RATED,
+    Q_RATED,
+    features,
+    generate_compressor_data,
+    vendor_curve,
 )
 
 

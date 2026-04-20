@@ -1,4 +1,3 @@
-# experiments/exp3_bayesian_compressor/data.py
 """Synthetic compressor operating data with linear fouling drift."""
 from __future__ import annotations
 

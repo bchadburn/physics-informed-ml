@@ -1,13 +1,14 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
 import torch
-import pytest
+
 from experiments.exp2_fno_heat_transfer.data import (
-    generate_darcy_dataset,
     DarcyDataset,
+    generate_darcy_dataset,
     get_grid_coords,
 )
 

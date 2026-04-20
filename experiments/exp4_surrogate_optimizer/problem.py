@@ -1,4 +1,3 @@
-# experiments/exp4_surrogate_optimizer/problem.py
 """Pump network optimization problem definition.
 
 Problem:

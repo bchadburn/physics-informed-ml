@@ -9,12 +9,11 @@ from __future__ import annotations
 
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import hydra
 import mlflow
-import numpy as np
 import torch
 from omegaconf import DictConfig
 
@@ -22,7 +21,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.metrics import optimality_gap
 from experiments.exp4_surrogate_optimizer.baselines import (
-    OptimizationResult, grid_search, random_search,
+    OptimizationResult,
+    grid_search,
+    random_search,
 )
 from experiments.exp4_surrogate_optimizer.optimizer import optimize, optimize_multistart
 from src.physics_models.data_generator import generate_pump_field_data
@@ -200,7 +201,7 @@ def main(cfg: DictConfig) -> None:
     table = _render_opt_table([
         ("Grid search (reference)", grid_result, 0.0, None),
         ("Random search", rand_result, gap_rand, None),
-        (f"Gradient (1 start)", grad_result, gap_grad, speedup_grad),
+        ("Gradient (1 start)", grad_result, gap_grad, speedup_grad),
         (f"Gradient ({cfg.optimization.n_starts} starts)", multistart_result, gap_multi, speedup_multi),
     ])
     log.info("\n%s", table)

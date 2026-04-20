@@ -1,9 +1,11 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import torch
-from experiments.exp2_fno_heat_transfer.model import SpectralConv2d, FNO2d, UNet2d
+
+from experiments.exp2_fno_heat_transfer.model import FNO2d, SpectralConv2d, UNet2d
 
 
 def test_spectral_conv_output_shape():

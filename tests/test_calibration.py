@@ -1,10 +1,12 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import torch
 import pytest
-from src.surrogates.calibration import ConformalCalibrator, CalibratedInterval
+import torch
+
+from src.surrogates.calibration import CalibratedInterval, ConformalCalibrator
 
 
 def _make_data(n: int, seed: int = 0):

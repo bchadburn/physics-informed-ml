@@ -1,9 +1,9 @@
 """Smoke test for HeatTransferModule training."""
+import lightning as pl
 import torch
 from torch.utils.data import DataLoader
-import pytorch_lightning as pl
 
-from experiments.exp2_fno_heat_transfer.data import load_or_generate, DarcyDataset
+from experiments.exp2_fno_heat_transfer.data import DarcyDataset, load_or_generate
 from experiments.exp2_fno_heat_transfer.model import FNO2d
 from experiments.exp2_fno_heat_transfer.train import HeatTransferModule
 

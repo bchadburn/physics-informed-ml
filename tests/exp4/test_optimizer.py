@@ -1,14 +1,19 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
-import pytest
 import torch
-from experiments.exp4_surrogate_optimizer.optimizer import optimize, optimize_multistart
+
 from experiments.exp4_surrogate_optimizer.baselines import OptimizationResult
+from experiments.exp4_surrogate_optimizer.optimizer import optimize, optimize_multistart
 from experiments.exp4_surrogate_optimizer.problem import (
-    H_MIN_DEFAULT, FLOW_RATE_LB, FLOW_RATE_UB, SPEED_LB, SPEED_UB,
+    FLOW_RATE_LB,
+    FLOW_RATE_UB,
+    H_MIN_DEFAULT,
+    SPEED_LB,
+    SPEED_UB,
 )
 
 
@@ -67,8 +72,9 @@ def test_multistart_total_calls_equals_sum_of_starts():
     assert result.n_surrogate_calls == n_starts * (n_steps + 1)
 
 
-def test_multistart_better_or_equal_to_single_start():
-    """Multi-start obj ≤ single-start obj on a non-convex landscape."""
-    single = optimize(_mock_surrogate, h_min=H_MIN_DEFAULT, n_steps=200)
+def test_multistart_returns_lower_or_equal_obj_than_best_single_run():
+    """Multi-start picks the best of N runs, so its obj ≤ any individual run."""
+    runs = [optimize(_mock_surrogate, h_min=H_MIN_DEFAULT, n_steps=200) for _ in range(5)]
+    best_single = min(r.obj_value for r in runs)
     multi = optimize_multistart(_mock_surrogate, h_min=H_MIN_DEFAULT, n_starts=5, n_steps=200)
-    assert multi.obj_value <= single.obj_value + 1e-4
+    assert multi.obj_value <= best_single + 1e-4

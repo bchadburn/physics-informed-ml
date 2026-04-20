@@ -1,12 +1,14 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
 import torch
 import torch.nn as nn
-from core.metrics import relative_l2_error, expected_calibration_error, inference_timer
+
 from core.benchmark import BenchmarkResult, render_markdown_table
+from core.metrics import expected_calibration_error, inference_timer, relative_l2_error
 
 
 def test_relative_l2_perfect():

@@ -1,15 +1,22 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
-import pytest
 import torch
+
 from experiments.exp4_surrogate_optimizer.baselines import (
-    OptimizationResult, random_search, grid_search,
+    OptimizationResult,
+    grid_search,
+    random_search,
 )
 from experiments.exp4_surrogate_optimizer.problem import (
-    FLOW_RATE_LB, FLOW_RATE_UB, SPEED_LB, SPEED_UB, H_MIN_DEFAULT,
+    FLOW_RATE_LB,
+    FLOW_RATE_UB,
+    H_MIN_DEFAULT,
+    SPEED_LB,
+    SPEED_UB,
 )
 
 

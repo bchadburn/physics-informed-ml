@@ -12,11 +12,11 @@ Physics loss: enforces H ∝ N² (affinity law) via autograd.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
+import lightning as L
 import torch
 import torch.nn as nn
-import lightning as L
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.physics_models.pump import PumpPhysics
@@ -39,11 +39,12 @@ class PINN(L.LightningModule):
     def __init__(
         self,
         config: PINNConfig,
-        physics: "PumpPhysics | None" = None,
+        physics: PumpPhysics | None = None,
     ) -> None:
         super().__init__()
         self.config = config
-        self.physics = physics
+        # physics is accepted for API compatibility with PINNEnsemble but not used
+        # internally — physics constraints are enforced via autograd on the affinity law
 
         # Input normalization statistics (set during fit, defaults are safe)
         self.register_buffer("x_mean", torch.zeros(3))
@@ -105,6 +106,8 @@ class PINN(L.LightningModule):
             )[0]
             dH_dN = grad[:, 1:2]                     # derivative w.r.t. speed col
             speed = x[:, 1:2]
+            # mean is detached to stabilize training: we penalize dH/dN against a
+            # fixed target rather than letting both sides co-adapt (which collapses to 0)
             target_dH_dN = 2.0 * mean.detach() / (speed + 1e-8)
             loss_physics = nn.functional.mse_loss(dH_dN, target_dH_dN)
         else:

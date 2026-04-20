@@ -1,7 +1,7 @@
 """Baseline comparison runner and markdown table renderer."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

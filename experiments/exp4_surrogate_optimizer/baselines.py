@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 import torch
 
 from experiments.exp4_surrogate_optimizer.problem import (
-    FLOW_RATE_LB, FLOW_RATE_UB, SPEED_LB, SPEED_UB,
-    pumping_power, constraint_violation,
+    FLOW_RATE_LB,
+    FLOW_RATE_UB,
+    SPEED_LB,
+    SPEED_UB,
 )
 
 

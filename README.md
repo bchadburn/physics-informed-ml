@@ -15,7 +15,7 @@ Each experiment is self-contained: its own data generator, model, training scrip
 
 Trains a physics-informed neural network ensemble on synthetic centrifugal pump data. Outputs calibrated uncertainty estimates (epistemic + aleatoric) with conformal prediction intervals.
 
-- Physics residual: affinity laws (H ∝ N², Q ∝ N) as a loss term
+- Physics residual: affinity law (H ∝ N²) enforced via autograd as a loss term
 - Ensemble uncertainty: variance across N independently trained members
 - Conformal calibration: distribution-free 90% prediction intervals
 - **Result:** Test RMSE ~1.5 m, 90% conformal coverage achieved
@@ -108,7 +108,7 @@ scripts/           Top-level training scripts (Exp 1)
 src/
   physics_models/  Pump physics, data generators
   surrogates/      PINN, ensemble, conformal calibration
-tests/             75 tests covering all experiments
+tests/             79 tests covering all experiments
 ```
 
 ## Setup

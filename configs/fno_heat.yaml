@@ -21,7 +21,7 @@ training:
   batch_size: 16
   max_epochs: 100
   early_stop_patience: 20
-  accelerator: gpu
+  accelerator: auto
 
 logging:
   mlflow_tracking_uri: mlruns

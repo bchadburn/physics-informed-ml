@@ -1,13 +1,12 @@
 """Tests for evaluate.py helper functions."""
-import torch
 
 
 def test_eval_rel_l2_shape(tmp_path):
     """_eval_rel_l2 returns a scalar float."""
-    from experiments.exp2_fno_heat_transfer.data import load_or_generate, DarcyDataset
+    from experiments.exp2_fno_heat_transfer.data import DarcyDataset, load_or_generate
+    from experiments.exp2_fno_heat_transfer.evaluate import _eval_rel_l2
     from experiments.exp2_fno_heat_transfer.model import FNO2d
     from experiments.exp2_fno_heat_transfer.train import HeatTransferModule
-    from experiments.exp2_fno_heat_transfer.evaluate import _eval_rel_l2
 
     kappa, T = load_or_generate(tmp_path / "d.h5", 10, 16, seed=0)
     ds = DarcyDataset(kappa, T)

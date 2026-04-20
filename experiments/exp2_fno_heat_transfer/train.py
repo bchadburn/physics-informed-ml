@@ -6,13 +6,13 @@ import sys
 from pathlib import Path
 
 import hydra
+import lightning as pl
 import mlflow
 import numpy as np
-import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from lightning.pytorch.callbacks import EarlyStopping
 from omegaconf import DictConfig
-from pytorch_lightning.callbacks import EarlyStopping
 from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

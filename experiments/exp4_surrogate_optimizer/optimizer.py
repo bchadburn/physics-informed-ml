@@ -10,15 +10,18 @@ the neural network to the input tensors.
 from __future__ import annotations
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import torch
 
 from experiments.exp4_surrogate_optimizer.baselines import OptimizationResult
 from experiments.exp4_surrogate_optimizer.problem import (
-    FLOW_RATE_LB, FLOW_RATE_UB, SPEED_LB, SPEED_UB,
-    augmented_lagrangian_loss, constraint_violation,
+    FLOW_RATE_LB,
+    FLOW_RATE_UB,
+    SPEED_LB,
+    SPEED_UB,
+    augmented_lagrangian_loss,
 )
 
 

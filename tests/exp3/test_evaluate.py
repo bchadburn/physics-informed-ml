@@ -1,8 +1,10 @@
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 import numpy as np
+
 from experiments.exp3_bayesian_compressor.evaluate import rmse_in_windows
 
 

@@ -17,8 +17,8 @@ from torch.utils.data import DataLoader, Subset
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.benchmark import BenchmarkResult, render_markdown_table
-from core.metrics import relative_l2_error, inference_timer
-from experiments.exp2_fno_heat_transfer.data import load_or_generate, DarcyDataset
+from core.metrics import inference_timer, relative_l2_error
+from experiments.exp2_fno_heat_transfer.data import DarcyDataset, load_or_generate
 from experiments.exp2_fno_heat_transfer.model import FNO2d, UNet2d
 from experiments.exp2_fno_heat_transfer.train import HeatTransferModule
 
@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 def _quick_train(module, train_ds, val_ds, batch_size, max_epochs=30, accelerator="cpu"):
     """Train for a small number of epochs to get a usable model."""
-    import pytorch_lightning as pl
+    import lightning as pl
     trainer = pl.Trainer(
         max_epochs=max_epochs,
         accelerator=accelerator,
