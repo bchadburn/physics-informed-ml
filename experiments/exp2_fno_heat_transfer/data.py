@@ -63,18 +63,24 @@ def _build_darcy_matrix(kappa: np.ndarray) -> sparse.csr_matrix:
     r, c, v = [], [], []
 
     # Diagonal
-    r.append(idx.ravel()); c.append(idx.ravel()); v.append(diag.ravel())
+    r.append(idx.ravel())
+    c.append(idx.ravel())
+    v.append(diag.ravel())
     # East
-    r.append(idx[:, :-1].ravel()); c.append(idx[:, 1:].ravel())
+    r.append(idx[:, :-1].ravel())
+    c.append(idx[:, 1:].ravel())
     v.append((-k_e[:, :-1] / h ** 2).ravel())
     # West
-    r.append(idx[:, 1:].ravel()); c.append(idx[:, :-1].ravel())
+    r.append(idx[:, 1:].ravel())
+    c.append(idx[:, :-1].ravel())
     v.append((-k_w[:, 1:] / h ** 2).ravel())
     # North
-    r.append(idx[:-1, :].ravel()); c.append(idx[1:, :].ravel())
+    r.append(idx[:-1, :].ravel())
+    c.append(idx[1:, :].ravel())
     v.append((-k_n[:-1, :] / h ** 2).ravel())
     # South
-    r.append(idx[1:, :].ravel()); c.append(idx[:-1, :].ravel())
+    r.append(idx[1:, :].ravel())
+    c.append(idx[:-1, :].ravel())
     v.append((-k_s[1:, :] / h ** 2).ravel())
 
     rows = np.concatenate(r)
@@ -179,7 +185,7 @@ class DarcyDataset(Dataset):
     def __init__(self, kappa: np.ndarray, T: np.ndarray) -> None:
         self.kappa = torch.from_numpy(kappa).float().unsqueeze(1)  # (N, 1, H, W)
         self.T = torch.from_numpy(T).float().unsqueeze(1)           # (N, 1, H, W)
-        H, W = kappa.shape[1], kappa.shape[2]
+        H = kappa.shape[1]
         coords = get_grid_coords(H)                                  # (2, H, W)
         # Broadcast coords to all samples
         self._coords = coords.unsqueeze(0).expand(len(kappa), -1, -1, -1)  # (N, 2, H, W)

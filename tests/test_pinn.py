@@ -1,6 +1,7 @@
 # tests/test_pinn.py
 import torch
-import pytest
+
+from src.surrogates.ensemble import EnsemblePrediction, PINNEnsemble
 from src.surrogates.pinn import PINN, PINNConfig
 
 
@@ -86,9 +87,6 @@ def test_pinn_training_step_decreases_loss():
     )
 
 
-from src.surrogates.ensemble import PINNEnsemble, EnsemblePrediction
-
-
 def test_ensemble_predict_returns_uncertainty():
     """Ensemble prediction must return mean, epistemic_std, aleatoric_std."""
     from src.physics_models.pump import PumpParameters, PumpPhysics
@@ -110,9 +108,9 @@ def test_ensemble_predict_returns_uncertainty():
 
 def test_ensemble_epistemic_uncertainty_increases_ood():
     """Epistemic uncertainty should be higher far outside training range."""
+    from src.physics_models.data_generator import generate_pump_field_data
     from src.physics_models.pump import PumpParameters, PumpPhysics
     from src.surrogates.pinn import PINNConfig
-    from src.physics_models.data_generator import generate_pump_field_data
 
     config = PINNConfig(hidden_dims=[32, 32], activation="tanh",
                         lambda_data=1.0, lambda_physics=0.0, lr=1e-3)

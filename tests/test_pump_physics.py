@@ -1,6 +1,8 @@
 # tests/test_pump_physics.py
 import numpy as np
 import pytest
+
+from src.physics_models.data_generator import generate_pump_field_data
 from src.physics_models.pump import PumpParameters, PumpPhysics
 
 
@@ -74,9 +76,6 @@ def test_invalid_flow_raises():
     physics = PumpPhysics(params)
     with pytest.raises(ValueError, match="flow"):
         physics.head(flow=-0.01, speed=1450.0)
-
-
-from src.physics_models.data_generator import generate_pump_field_data
 
 
 def test_data_generator_shape():
