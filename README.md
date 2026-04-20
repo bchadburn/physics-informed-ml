@@ -119,3 +119,22 @@ uv run pytest tests/
 ```
 
 Requires Python 3.12, CUDA optional (falls back to CPU).
+
+## Inference API
+
+A FastAPI endpoint serves PINN surrogate predictions with uncertainty decomposition.
+
+```bash
+# 1. Generate a demo checkpoint (3-member ensemble, 100 epochs, CPU, ~2 min)
+uv run python scripts/generate_demo_checkpoint.py
+
+# 2. Start the server
+uv run uvicorn src.api.app:app --reload
+
+# 3. Query
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"flow_rate": 0.04, "speed": 1450, "operating_hours": 500}'
+```
+
+Without a checkpoint the API falls back to the physics model (vendor curve, no uncertainty). Run `generate_demo_checkpoint.py` once to get real PINN predictions with epistemic and aleatoric uncertainty.
