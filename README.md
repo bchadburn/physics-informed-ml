@@ -1,5 +1,7 @@
 # Physics-Informed ML Portfolio
 
+![CI](https://github.com/bchadburn/physics-informed-ml/actions/workflows/ci.yml/badge.svg)
+
 Four experiments applying physics-informed machine learning to industrial systems — pumps, heat transfer, compressors. Built as an interview portfolio targeting ML Engineer roles at industrial AI companies.
 
 Each experiment is self-contained: its own data generator, model, training script, evaluation script, and tests.
